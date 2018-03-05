@@ -1,5 +1,14 @@
 ROT.RNG.setSeed(1234);
 
+var getClickPosition = function(e) {
+	var square_width = display.getContainer().width/screen_width;
+	var square_height = display.getContainer().height/screen_height;
+	var click_x = e.clientX+6/square_width;
+	var click_y = e.clientY+6/square_height;
+	//alert(Math.floor(click_x) + "," + Math.floor(click_y));
+	display.draw(Math.floor(click_x)-1,Math.floor(click_y)-1,"C");
+}
+
 var callback = function(x,y,value){
 	map[x + "," + y] = value;
 }
@@ -52,8 +61,6 @@ var arena = new ROT.Map.Digger(screen_width,screen_height);
 arena.create(callback);
 var character = new Entity(7,5);
 var monster = new Entity(7,4);
-var debugvalue;
-debugvalue = map[12,12];
 place(character);
 place(monster);
 
@@ -102,6 +109,5 @@ if (direction == 4){
 });
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
-debug.innerHTML = debugvalue;
+display.getContainer().addEventListener("click", getClickPosition);
 document.body.appendChild(display.getContainer());
-document.body.appendChild(debug);
