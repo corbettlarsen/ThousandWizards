@@ -1,3 +1,9 @@
+ROT.RNG.setSeed(1234);
+
+var callback = function(x,y,value){
+	map[x + "," + y] = value;
+}
+
 function Entity(startX, startY){
   this.x = startX;
   this.y = startY;
@@ -23,15 +29,33 @@ function Entity(startX, startY){
   }
 }
 
+function place(entity){
+  for(i = 0;i <screen_width; i++){
+	for (j = 0; j <screen_height; j++){
+		if(!map[i + "," + j]){
+      entity.x = i;
+      entity.y= j;
+      return 1;
+    }
+	}
+}
+  return 0;
+}
+
 var debug = document.createElement("div");
 
 ROT.RNG.setSeed(1234);
 var map = {};
-var arena = new ROT.Map.Digger(49,49);
-var x = 7;
-var y = 5;
+var screen_width = 40;
+var screen_height = 40;
+var arena = new ROT.Map.Digger(screen_width,screen_height);
+arena.create(callback);
 var character = new Entity(7,5);
 var monster = new Entity(7,4);
+var debugvalue;
+debugvalue = map[12,12];
+place(character);
+place(monster);
 
 document.addEventListener("keydown", function(e) {
     var code = e.keyCode;
@@ -55,7 +79,6 @@ document.addEventListener("keydown", function(e) {
 	}
 
   var direction = Math.floor((Math.random() * 4) + 1);
-  debug.innerHTML = direction;
   if (direction == 1){
   monster.moveup();
 }
@@ -69,21 +92,16 @@ if (direction == 4){
   monster.moveleft();
 }
 
-	for(i = 0;i <49; i++){
-	for (j = 0; j < 49; j++){
+	for(i = 0;i <screen_width; i++){
+	for (j = 0; j < screen_height; j++){
 		display.draw(i,j,map[i + "," + j] ? "#" : " ");
 	}
 	display.draw(character.x,character.y,"@");
   display.draw(monster.x,monster.y,"!");
 }
 });
-
-var callback = function(x,y,value){
-	map[x + "," + y] = value;
-}
-arena.create(callback);
-var display = new ROT.Display({width:49, height:49, forceSquareRatio:true});
+var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
-debug.innerHTML = "bug";
+debug.innerHTML = debugvalue;
 document.body.appendChild(display.getContainer());
 document.body.appendChild(debug);
