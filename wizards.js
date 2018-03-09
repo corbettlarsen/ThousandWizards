@@ -3,10 +3,12 @@ ROT.RNG.setSeed(1234);
 var getClickPosition = function(e) {
 	var square_width = display.getContainer().width/screen_width;
 	var square_height = display.getContainer().height/screen_height;
-	var click_x = e.clientX+6/square_width;
-	var click_y = e.clientY+6/square_height;
-	//alert(Math.floor(click_x) + "," + Math.floor(click_y));
-	display.draw(Math.floor(click_x)-1,Math.floor(click_y)-1,"C");
+	var click_x = (e.clientX + 6)/square_width;
+	var click_y = (e.clientY + 6)/square_height;
+	var tile_x = Math.floor(click_x)-1;
+	var tile_y = Math.floor(click_y)-1;
+	//alert(tile_x + "," + tile_y);
+	display.draw(tile_x,tile_y,"C");
 }
 
 var callback = function(x,y,value){
