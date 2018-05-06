@@ -17,13 +17,11 @@ var callback = function(x,y,value){
 }
 arena.create(callback);
 var character = new Entity(7,5,"@");
-var monster = new Entity(7,4,"!");
-place(character);
-place(monster);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
 display.getContainer().addEventListener("click", getClickPosition);
 document.body.appendChild(display.getContainer());
+place(character);
 
 var getClickPosition = function(e) {
 	var square_width = display.getContainer().width/screen_width;
@@ -32,11 +30,11 @@ var getClickPosition = function(e) {
 	var click_y = (e.clientY + 6)/square_height;
 	var tile_x = Math.floor(click_x)-1;
 	var tile_y = Math.floor(click_y)-1;
-	display.draw(tile_x,tile_y,"C");
+	display.draw(tile_x,tile_y,"X");
 	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y, passableCallback);
 	dijkstra.compute(tile_x, tile_y, function(x, y) {
-	display.draw(x, y, "", "", "#800");
-	character.patharray.push(x + ',' + y);
+	//display.draw(x, y, "", "", "#800");
+	character.patharray.push([x,y]);
    });
 	character.calcpath();
 
@@ -48,6 +46,31 @@ function Entity(startX, startY,icon){
   this.y = startY;
 	this.patharray = [];
 	this.path = [];
+  var queue = new ROT.EventQueue();
+  this.northwest = function(){
+    if (!map[(this.x-1)+","+(this.y-1)]){
+		this.x -= 1;
+    this.y -= 1;
+  }
+}
+  this.northeast = function(){
+    if (!map[(this.x+1)+","+(this.y-1)]){
+		this.x += 1;
+    this.y -= 1;
+  }
+}
+  this.southwest = function(){
+    if (!map[(this.x-1)+","+(this.y+1)]){
+		this.x -= 1;
+    this.y += 1;
+  }
+}
+  this.southeast = function(){
+    if (!map[(this.x+1)+","+(this.y+1)]){
+		this.x += 1;
+    this.y += 1;
+  }
+}
   this.moveup = function(){
     if (!map[this.x+","+(this.y-1)]){
 		this.y -= 1;
@@ -69,6 +92,7 @@ function Entity(startX, startY,icon){
 	}
   }
 	this.fovcomp = function(){
+    display.clear();
 		fov.compute(this.x, this.y, 10,function(x, y, r, visibility) {
 		var ch = (r ? " " : icon);
 		var color = (map[x+","+y] ? "#aa0": "#660");
@@ -76,15 +100,39 @@ function Entity(startX, startY,icon){
 		 });
 	}
 	this.act = function(){
-    /* to do */
+    direction = queue.get();
+    if (direction[0] == -1 && direction[1] == -1){
+      this.northwest();
+    }
+    else if (direction[0] == 1 && direction[1] == -1) {
+      this.northeast();
+    }
+    else if (direction[0] == -1 && direction[1] == 1) {
+      this.southwest();
+    }
+    else if (direction[0] == 1 && direction[1] == 1) {
+      this.southeast();
+    }
+    else if (direction[0] == 0 && direction[1] == -1) {
+      this.moveup();
+    }
+    else if (direction[0] == 0 && direction[1] == 1) {
+      this.movedown();
+    }
+    else if (direction[0] == -1 && direction[1] == 0) {
+      this.moveleft();
+    }
+    else if (direction[0] == 1 && direction[1] == 0) {
+      this.moveright();
+    }
 	}
 	this.calcpath = function(){
-		alert(character.path);/*
-     for(var i = 0; i < this.patharray.length; i++){
-			 this.path.push(this.patharray[i+1][0]-this.patharray[i][0]);
+    queue.clear();
+     for(var i = this.patharray.length-1; i > 0 ; i--){
+			 queue.add([this.patharray[i-1][0] - this.patharray[i][0],
+       this.patharray[i-1][1] - this.patharray[i][1]]);
 		 }
-		 */
-
+     this.patharray = [];
 	}
 }
 
@@ -93,7 +141,8 @@ function place(entity){
 	for (j = 0; j <screen_height; j++){
 		if(!map[i + "," + j]){
       entity.x = i;
-      entity.y= j;
+      entity.y = j;
+      entity.fovcomp();
       return 1;
     }
 	}
@@ -122,14 +171,14 @@ document.addEventListener("keydown", function(e) {
 	if (vk == "VK_LEFT"){
 		character.moveleft();
 	}
-	display.clear();
-	character.fovcomp();
 
 });
-/*
+
 setInterval(function(){
+
+  character.act();
+	character.fovcomp();
 
 }, 100
 
 );
-*/
