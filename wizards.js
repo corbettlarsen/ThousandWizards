@@ -16,12 +16,13 @@ var callback = function(x,y,value){
 	map[x + "," + y] = value;
 }
 arena.create(callback);
-var character = new Entity(7,5,"@");
+var character = new Entity(29,20,"@");
+var cart = new Entity(29,21,"H");
+character.set_cart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
 display.getContainer().addEventListener("click", getClickPosition);
 document.body.appendChild(display.getContainer());
-place(character);
 
 var getClickPosition = function(e) {
 	var square_width = display.getContainer().width/screen_width;
@@ -35,8 +36,12 @@ var getClickPosition = function(e) {
 	dijkstra.compute(tile_x, tile_y, function(x, y) {
 	//display.draw(x, y, "", "", "#800");
 	character.patharray.push([x,y]);
+  if (character.cart != null) {
+    character.cart.patharray.push([x,y]);
+  }
    });
 	character.calcpath();
+
 
 }
 display.getContainer().addEventListener("click", getClickPosition);
@@ -45,8 +50,15 @@ function Entity(startX, startY,icon){
   this.x = startX;
   this.y = startY;
 	this.patharray = [];
-	this.path = [];
   var queue = new ROT.EventQueue();
+  this.cart = null;
+  this.set_array = function(array){
+    this.patharray = array;
+    return array;
+  }
+  this.set_cart = function(cart_entity){
+    this.cart = cart_entity;
+  }
   this.northwest = function(){
     if (!map[(this.x-1)+","+(this.y-1)]){
 		this.x -= 1;
@@ -93,15 +105,18 @@ function Entity(startX, startY,icon){
   }
 	this.fovcomp = function(){
     display.clear();
-		fov.compute(this.x, this.y, 10,function(x, y, r, visibility) {
-		var ch = (r ? " " : icon);
-		var color = (map[x+","+y] ? "#aa0": "#660");
-		display.draw(x, y, ch, "#fff", color);
-		 });
+  		fov.compute(this.x, this.y, 10,function(x, y, r, visibility) {
+  		var ch = (r ? " " : icon);
+  		var color = (map[x+","+y] ? "#aa0": "#660");
+  		display.draw(x, y, ch, "#fff", color);
+  		 });
 	}
 	this.act = function(){
     direction = queue.get();
-    if (direction[0] == -1 && direction[1] == -1){
+    if(direction == null){
+      return;
+    }
+    else if (direction[0] == -1 && direction[1] == -1){
       this.northwest();
     }
     else if (direction[0] == 1 && direction[1] == -1) {
@@ -128,6 +143,11 @@ function Entity(startX, startY,icon){
 	}
 	this.calcpath = function(){
     queue.clear();
+    if(this.cart != null){
+      this.cart.patharray.shift();
+      this.cart.patharray.push([this.cart.x,this.cart.y]);
+      this.cart.calcpath();
+    }
      for(var i = this.patharray.length-1; i > 0 ; i--){
 			 queue.add([this.patharray[i-1][0] - this.patharray[i][0],
        this.patharray[i-1][1] - this.patharray[i][1]]);
@@ -177,7 +197,10 @@ document.addEventListener("keydown", function(e) {
 setInterval(function(){
 
   character.act();
+  cart.act();
 	character.fovcomp();
+  display.draw(cart.x, cart.y, "H","aa0","#000");
+
 
 }, 100
 
