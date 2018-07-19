@@ -16,13 +16,27 @@ var callback = function(x,y,value){
 	map[x + "," + y] = value;
 }
 arena.create(callback);
+var cont = new EntityContainer();
 var character = new Entity(29,20,"@");
 var cart = new Entity(29,21,"H");
+var crate = cont.createEntity(0,0,"X");
+var crate2 = cont.createEntity(0,0,"X");
 character.set_cart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
 display.getContainer().addEventListener("click", getClickPosition);
 document.body.appendChild(display.getContainer());
+place(crate);
+place(crate2);
+
+var draw_screen = function(){
+  for(i = 0; i < screen_width;i++){
+    for(j = 0; j < screen_height;j++){
+      var color = (map[i+","+j] ? "#aa0": "#660");
+      display.draw(i, j, null,"#fff",color);
+    }
+  }
+}
 
 var getClickPosition = function(e) {
 	var square_width = display.getContainer().width/screen_width;
@@ -34,24 +48,39 @@ var getClickPosition = function(e) {
 	display.draw(tile_x,tile_y,"X");
 	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y, passableCallback);
 	dijkstra.compute(tile_x, tile_y, function(x, y) {
-	//display.draw(x, y, "", "", "#800");
 	character.patharray.push([x,y]);
   if (character.cart != null) {
     character.cart.patharray.push([x,y]);
   }
    });
 	character.calcpath();
-
-
 }
 display.getContainer().addEventListener("click", getClickPosition);
+
+function EntityContainer(){
+  this.entity_array = [];
+  this.createEntity = function(x,y,icon){
+    var entity = new Entity(x,y,icon);
+    this.entity_array.push(entity);
+    return entity;
+  }
+  this.drawEntities = function(){
+    this.entity_array.forEach(function(item) {item.draw_character()});
+  }
+}
 
 function Entity(startX, startY,icon){
   this.x = startX;
   this.y = startY;
 	this.patharray = [];
+  var id = 0;
   var queue = new ROT.EventQueue();
   this.cart = null;
+
+  this.getid = function(){
+    return id;
+  }
+
   this.set_array = function(array){
     this.patharray = array;
     return array;
@@ -104,14 +133,17 @@ function Entity(startX, startY,icon){
 	}
   }
 	this.fovcomp = function(){
-    display.clear();
   		fov.compute(this.x, this.y, 10,function(x, y, r, visibility) {
-  		var ch = (r ? " " : icon);
+  		var ch = null;
   		var color = (map[x+","+y] ? "#aa0": "#660");
   		display.draw(x, y, ch, "#fff", color);
   		 });
 	}
+  this.draw_character = function(){
+    display.draw(this.x, this.y, icon,"#fff","#660");
+  }
 	this.act = function(){
+
     direction = queue.get();
     if(direction == null){
       return;
@@ -162,6 +194,7 @@ function place(entity){
 		if(!map[i + "," + j]){
       entity.x = i;
       entity.y = j;
+      map[i + "," + j] = 2;
       entity.fovcomp();
       return 1;
     }
@@ -198,10 +231,13 @@ setInterval(function(){
 
   character.act();
   cart.act();
-	character.fovcomp();
-  display.draw(cart.x, cart.y, "H","aa0","#000");
 
+  display.clear();
+	draw_screen();
 
+  character.draw_character();
+  cart.draw_character();
+  cont.drawEntities();
 }, 100
 
 );
