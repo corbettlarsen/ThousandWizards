@@ -18,16 +18,12 @@ var callback = function(x,y,value){
 arena.create(callback);
 var cont = new EntityContainer();
 var character = new Entity(29,20,"@");
-var cart = new Entity(29,21,"H");
-var crate = cont.createEntity(0,0,"X");
-var crate2 = cont.createEntity(0,0,"X");
+var cart = new Entity(29,21,"A");
 character.set_cart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
-display.getContainer().addEventListener("click", getClickPosition);
+display.getContainer().addEventListener("keypress", getClickPosition);
 document.body.appendChild(display.getContainer());
-place(crate);
-place(crate2);
 
 var draw_screen = function(){
   for(i = 0; i < screen_width;i++){
@@ -45,15 +41,20 @@ var getClickPosition = function(e) {
 	var click_y = (e.clientY + 6)/square_height;
 	var tile_x = Math.floor(click_x)-1;
 	var tile_y = Math.floor(click_y)-1;
-	display.draw(tile_x,tile_y,"X");
-	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y, passableCallback);
-	dijkstra.compute(tile_x, tile_y, function(x, y) {
-	character.patharray.push([x,y]);
-  if (character.cart != null) {
-    character.cart.patharray.push([x,y]);
+  if(!e.shiftKey){
+  	display.draw(tile_x,tile_y,"X");
+  	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y, passableCallback);
+  	dijkstra.compute(tile_x, tile_y, function(x, y) {
+  	character.patharray.push([x,y]);
+    if (character.cart != null) {
+      character.cart.patharray.push([x,y]);
+    }
+     });
+  	character.calcpath();
+    }
+  else{
+    cont.createEntity(tile_x,tile_y,"X");
   }
-   });
-	character.calcpath();
 }
 display.getContainer().addEventListener("click", getClickPosition);
 
@@ -76,6 +77,7 @@ function Entity(startX, startY,icon){
   var id = 0;
   var queue = new ROT.EventQueue();
   this.cart = null;
+  map[startX +","+startY] = 2;
 
   this.getid = function(){
     return id;
