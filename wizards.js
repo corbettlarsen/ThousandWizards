@@ -17,8 +17,8 @@ var callback = function(x,y,value){
 }
 arena.create(callback);
 var cont = new EntityContainer();
-var character = new Entity(29,20,"@");
-var cart = new Entity(29,21,"A");
+var character = cont.createEntity(29,20,"@");
+var cart = cont.createCart(29,21,"A");
 character.set_cart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
@@ -53,7 +53,15 @@ var getClickPosition = function(e) {
   	character.calcpath();
     }
   else{
-    cont.createEntity(tile_x,tile_y,"X");
+    if(tile_x <= (character.x+1) && tile_x >= (character.x-1)){
+    if(tile_y <= (character.y+1) && tile_y >= (character.y-1)){
+    if(!(tile_x == character.x && tile_y == character.y)){
+    if(!(tile_x == cart.x && tile_y == cart.y)){
+      cont.createCrate(tile_x,tile_y,"X");
+    }
+    }
+    }
+    }
   }
 }
 display.getContainer().addEventListener("click", getClickPosition);
@@ -65,11 +73,33 @@ function EntityContainer(){
     this.entity_array.push(entity);
     return entity;
   }
+  this.createCart = function(x,y,icon){
+    var cart = new Cart(x,y,icon);
+    this.entity_array.push(cart);
+    return cart;
+  }
+  this.createCrate = function(x,y,icon){
+    var crate = new Crate(x,y,icon);
+    this.entity_array.push(crate);
+    return crate;
+  }
+  this.pickUpCrate = function(){
+    /*to do*/
+  }
   this.drawEntities = function(){
     this.entity_array.forEach(function(item) {item.draw_character()});
   }
+  this.actEntities = function(){
+    this.entity_array.forEach(function(item) {item.act()});
+  }
 }
-
+function Cart(startX, startY, icon){
+  Entity.call(this,startX,startY,icon);
+}
+function Crate(startX, startY, icon){
+  map[startX +","+startY] = 2;
+  Entity.call(this,startX,startY,icon);
+}
 function Entity(startX, startY,icon){
   this.x = startX;
   this.y = startY;
@@ -77,7 +107,6 @@ function Entity(startX, startY,icon){
   var id = 0;
   var queue = new ROT.EventQueue();
   this.cart = null;
-  map[startX +","+startY] = 2;
 
   this.getid = function(){
     return id;
@@ -231,15 +260,11 @@ document.addEventListener("keydown", function(e) {
 
 setInterval(function(){
 
-  character.act();
-  cart.act();
-
+  cont.actEntities();
   display.clear();
 	draw_screen();
-
-  character.draw_character();
-  cart.draw_character();
   cont.drawEntities();
+
 }, 100
 
 );
