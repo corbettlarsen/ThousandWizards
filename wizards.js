@@ -7,12 +7,12 @@ var map = {};
 var screen_width = 40;
 var screen_height = 40;
 var passableCallback = function(x, y) {
-    return (map[x+","+y] === 0);
+    return (map[x+","+y] === FLOOR);
 }
 var arena = new ROT.Map.Digger(screen_width,screen_height);
 var lightPasses = function(x, y) {
     var key = x+","+y;
-    if (key in map) { return (map[key] == 0); }
+    if (key in map) { return (map[key] == FLOOR); }
     return false;
 }
 var fov = new ROT.FOV.RecursiveShadowcasting(lightPasses);
@@ -22,7 +22,8 @@ var callback = function(x,y,value){
 arena.create(callback);
 var cont = new EntityContainer();
 var character = cont.createEntity(29,20,"@");
-var cart = cont.createCart(29,21,"A");
+var cart = cont.createCart(29,21,"H");
+var crate = cont.createCrate(30,20,"H");
 character.set_cart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
@@ -62,12 +63,17 @@ var getClickPosition = function(e) {
     if(!(tile_x == character.x && tile_y == character.y)){
     if(!(tile_x == cart.x && tile_y == cart.y)){
       if(cont.entity_map[tile_x+","+tile_y]){
+        if(!cart.full)
         cont.removeCrate(tile_x,tile_y);
+        cart.fill();
+        }
+        else{
+          if(cart.full){
+          cont.createCrate(tile_x,tile_y,"H");
+          cart.empty();
+        }
       }
-      else{
-        cont.createCrate(tile_x,tile_y,"X");
       }
-    }
     }
     }
     }
@@ -107,12 +113,14 @@ function EntityContainer(){
 }
 function Cart(startX, startY, icon){
   Entity.call(this,startX,startY,icon);
-  this.full = Boolean(false);
+  this.full = Boolean(true);
   this.fill = function(){
     this.full = Boolean(true);
+    this.icon = "H"
   }
   this.empty = function(){
     this.full = Boolean(false);
+    this.icon = "X"
   }
 }
 function Crate(startX, startY, icon){
@@ -120,6 +128,7 @@ function Crate(startX, startY, icon){
   Entity.call(this,startX,startY,icon);
 }
 function Entity(startX, startY,icon){
+  this.icon = icon;
   this.x = startX;
   this.y = startY;
 	this.patharray = [];
@@ -190,7 +199,7 @@ function Entity(startX, startY,icon){
   		 });
 	}
   this.draw_character = function(){
-    display.draw(this.x, this.y, icon,"#fff","#660");
+    display.draw(this.x, this.y, this.icon,"#fff","#660");
   }
 	this.act = function(){
 
@@ -237,7 +246,6 @@ function Entity(startX, startY,icon){
      this.patharray = [];
 	}
 }
-
 function place(entity){
   for(i = 0;i <screen_width; i++){
 	for (j = 0; j <screen_height; j++){
