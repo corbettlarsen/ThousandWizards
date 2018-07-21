@@ -1,3 +1,7 @@
+const FLOOR = 0;
+const WALL = 1;
+const CRATE = 2;
+
 ROT.RNG.setSeed(1234);
 var map = {};
 var screen_width = 40;
@@ -52,12 +56,17 @@ var getClickPosition = function(e) {
      });
   	character.calcpath();
     }
-  else{
+  else if((map[tile_x+","+tile_y] == FLOOR) || (map[tile_x+","+tile_y] == CRATE)){
     if(tile_x <= (character.x+1) && tile_x >= (character.x-1)){
     if(tile_y <= (character.y+1) && tile_y >= (character.y-1)){
     if(!(tile_x == character.x && tile_y == character.y)){
     if(!(tile_x == cart.x && tile_y == cart.y)){
-      cont.createCrate(tile_x,tile_y,"X");
+      if(cont.entity_map[tile_x+","+tile_y]){
+        cont.removeCrate(tile_x,tile_y);
+      }
+      else{
+        cont.createCrate(tile_x,tile_y,"X");
+      }
     }
     }
     }
@@ -67,37 +76,47 @@ var getClickPosition = function(e) {
 display.getContainer().addEventListener("click", getClickPosition);
 
 function EntityContainer(){
-  this.entity_array = [];
+  this.entity_map = {};
   this.createEntity = function(x,y,icon){
     var entity = new Entity(x,y,icon);
-    this.entity_array.push(entity);
+    this.entity_map[x+","+y] = entity;
     return entity;
   }
   this.createCart = function(x,y,icon){
     var cart = new Cart(x,y,icon);
-    this.entity_array.push(cart);
+    this.entity_map[x+","+y] = cart;
     return cart;
   }
   this.createCrate = function(x,y,icon){
     var crate = new Crate(x,y,icon);
-    this.entity_array.push(crate);
+    this.entity_map[x+","+y] = crate;
     return crate;
   }
-  this.pickUpCrate = function(){
-    /*to do*/
+  this.removeCrate = function(x,y){
+    delete this.entity_map[x+","+y];
+    map[x +","+y] = FLOOR;
   }
   this.drawEntities = function(){
-    this.entity_array.forEach(function(item) {item.draw_character()});
+    var entMap = this.entity_map;
+    Object.keys(entMap).forEach(function(item) {entMap[item].draw_character()});
   }
   this.actEntities = function(){
-    this.entity_array.forEach(function(item) {item.act()});
+    var entMap = this.entity_map;
+    Object.keys(entMap).forEach(function(item) {entMap[item].act()});
   }
 }
 function Cart(startX, startY, icon){
   Entity.call(this,startX,startY,icon);
+  this.full = Boolean(false);
+  this.fill = function(){
+    this.full = Boolean(true);
+  }
+  this.empty = function(){
+    this.full = Boolean(false);
+  }
 }
 function Crate(startX, startY, icon){
-  map[startX +","+startY] = 2;
+  map[startX +","+startY] = CRATE;
   Entity.call(this,startX,startY,icon);
 }
 function Entity(startX, startY,icon){
