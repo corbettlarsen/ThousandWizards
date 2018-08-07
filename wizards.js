@@ -6,10 +6,7 @@ ROT.RNG.setSeed(1234);
 var map = {};
 var screen_width = 40;
 var screen_height = 40;
-var passableCallback = function(x, y) {
-    return (map[x+","+y] === FLOOR);
-}
-var arena = new ROT.Map.Digger(screen_width,screen_height);
+
 var lightPasses = function(x, y) {
     var key = x+","+y;
     if (key in map) { return (map[key] == FLOOR); }
@@ -19,25 +16,17 @@ var fov = new ROT.FOV.RecursiveShadowcasting(lightPasses);
 var callback = function(x,y,value){
 	map[x + "," + y] = value;
 }
+var arena = new ROT.Map.Digger(screen_width,screen_height);
 arena.create(callback);
 var cont = new EntityContainer();
 var character = cont.createEntity(29,20,"@");
 var cart = cont.createCart(29,21,"H");
 var crate = cont.createCrate(30,20,"H");
-character.set_cart(cart);
+character.setCart(cart);
 var display = new ROT.Display({width:screen_width, height:screen_height, forceSquareRatio:true});
 var debug = document.createElement("div");
 display.getContainer().addEventListener("keypress", getClickPosition);
 document.body.appendChild(display.getContainer());
-
-var draw_screen = function(){
-  for(i = 0; i < screen_width;i++){
-    for(j = 0; j < screen_height;j++){
-      var color = (map[i+","+j] ? "#aa0": "#660");
-      display.draw(i, j, null,"#fff",color);
-    }
-  }
-}
 
 var getClickPosition = function(e) {
 	var square_width = display.getContainer().width/screen_width;
@@ -48,14 +37,18 @@ var getClickPosition = function(e) {
 	var tile_y = Math.floor(click_y)-1;
   if(!e.shiftKey){
   	display.draw(tile_x,tile_y,"X");
-  	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y, passableCallback);
+  	var dijkstra = new ROT.Path.Dijkstra(character.x,character.y,
+      function(x, y) {
+          return (map[x+","+y] === FLOOR);
+      }
+    );
   	dijkstra.compute(tile_x, tile_y, function(x, y) {
-  	character.patharray.push([x,y]);
+  	character.path_array.push([x,y]);
     if (character.cart != null) {
-      character.cart.patharray.push([x,y]);
+      character.cart.path_array.push([x,y]);
     }
      });
-  	character.calcpath();
+  	character.calcPath();
     }
   else if((map[tile_x+","+tile_y] == FLOOR) || (map[tile_x+","+tile_y] == CRATE)){
     if(tile_x <= (character.x+1) && tile_x >= (character.x-1)){
@@ -87,7 +80,7 @@ function EntityContainer(){
     var entity = new Entity(x,y,icon);
     this.entity_map[x+","+y] = entity;
     return entity;
-  }
+   }
   this.createCart = function(x,y,icon){
     var cart = new Cart(x,y,icon);
     this.entity_map[x+","+y] = cart;
@@ -104,7 +97,7 @@ function EntityContainer(){
   }
   this.drawEntities = function(){
     var entMap = this.entity_map;
-    Object.keys(entMap).forEach(function(item) {entMap[item].draw_character()});
+    Object.keys(entMap).forEach(function(item) {entMap[item].drawCharacter()});
   }
   this.actEntities = function(){
     var entMap = this.entity_map;
@@ -131,7 +124,7 @@ function Entity(startX, startY,icon){
   this.icon = icon;
   this.x = startX;
   this.y = startY;
-	this.patharray = [];
+	this.path_array = [];
   var id = 0;
   var queue = new ROT.EventQueue();
   this.cart = null;
@@ -140,65 +133,65 @@ function Entity(startX, startY,icon){
     return id;
   }
 
-  this.set_array = function(array){
-    this.patharray = array;
+  this.setArray = function(array){
+    this.path_array = array;
     return array;
   }
-  this.set_cart = function(cart_entity){
+  this.setCart = function(cart_entity){
     this.cart = cart_entity;
   }
-  this.northwest = function(){
+  this.northWest = function(){
     if (!map[(this.x-1)+","+(this.y-1)]){
 		this.x -= 1;
     this.y -= 1;
   }
 }
-  this.northeast = function(){
+  this.northEast = function(){
     if (!map[(this.x+1)+","+(this.y-1)]){
 		this.x += 1;
     this.y -= 1;
   }
 }
-  this.southwest = function(){
+  this.southWest = function(){
     if (!map[(this.x-1)+","+(this.y+1)]){
 		this.x -= 1;
     this.y += 1;
   }
 }
-  this.southeast = function(){
+  this.southEast = function(){
     if (!map[(this.x+1)+","+(this.y+1)]){
 		this.x += 1;
     this.y += 1;
   }
 }
-  this.moveup = function(){
+  this.moveUp = function(){
     if (!map[this.x+","+(this.y-1)]){
 		this.y -= 1;
 	}
   }
-  this.movedown = function(){
+  this.moveDown = function(){
     if (!map[this.x+","+(this.y+1)]){
 		this.y += 1;
 	}
   }
-  this.moveleft = function(){
+  this.moveLeft = function(){
     if (!map[(this.x-1)+","+this.y]){
 		this.x -= 1;
 	}
   }
-  this.moveright = function(){
+  this.moveRight = function(){
     if (!map[(this.x+1)+","+this.y]){
 		this.x += 1;
 	}
   }
-	this.fovcomp = function(){
+	this.fovComp = function(){
   		fov.compute(this.x, this.y, 10,function(x, y, r, visibility) {
   		var ch = null;
   		var color = (map[x+","+y] ? "#aa0": "#660");
   		display.draw(x, y, ch, "#fff", color);
   		 });
 	}
-  this.draw_character = function(){
+  this.drawCharacter = function(){
     display.draw(this.x, this.y, this.icon,"#fff","#660");
   }
 	this.act = function(){
@@ -208,42 +201,42 @@ function Entity(startX, startY,icon){
       return;
     }
     else if (direction[0] == -1 && direction[1] == -1){
-      this.northwest();
+      this.northWest();
     }
     else if (direction[0] == 1 && direction[1] == -1) {
-      this.northeast();
+      this.northEast();
     }
     else if (direction[0] == -1 && direction[1] == 1) {
-      this.southwest();
+      this.southWest();
     }
     else if (direction[0] == 1 && direction[1] == 1) {
-      this.southeast();
+      this.southEast();
     }
     else if (direction[0] == 0 && direction[1] == -1) {
-      this.moveup();
+      this.moveUp();
     }
     else if (direction[0] == 0 && direction[1] == 1) {
-      this.movedown();
+      this.moveDown();
     }
     else if (direction[0] == -1 && direction[1] == 0) {
-      this.moveleft();
+      this.moveLeft();
     }
     else if (direction[0] == 1 && direction[1] == 0) {
-      this.moveright();
+      this.moveRight();
     }
 	}
-	this.calcpath = function(){
+	this.calcPath = function(){
     queue.clear();
     if(this.cart != null){
-      this.cart.patharray.shift();
-      this.cart.patharray.push([this.cart.x,this.cart.y]);
-      this.cart.calcpath();
+      this.cart.path_array.shift();
+      this.cart.path_array.push([this.cart.x,this.cart.y]);
+      this.cart.calcPath();
     }
-     for(var i = this.patharray.length-1; i > 0 ; i--){
-			 queue.add([this.patharray[i-1][0] - this.patharray[i][0],
-       this.patharray[i-1][1] - this.patharray[i][1]]);
+     for(var i = this.path_array.length-1; i > 0 ; i--){
+			 queue.add([this.path_array[i-1][0] - this.path_array[i][0],
+       this.path_array[i-1][1] - this.path_array[i][1]]);
 		 }
-     this.patharray = [];
+     this.path_array = [];
 	}
 }
 function place(entity){
@@ -253,7 +246,7 @@ function place(entity){
       entity.x = i;
       entity.y = j;
       map[i + "," + j] = 2;
-      entity.fovcomp();
+      entity.fovComp();
       return 1;
     }
 	}
@@ -261,35 +254,19 @@ function place(entity){
   return 0;
 }
 
-var debug = document.createElement("div");
-document.addEventListener("keydown", function(e) {
-    var code = e.keyCode;
-
-    var vk = "?";
-    for (var name in ROT) {
-        if (ROT[name] == code && name.indexOf("VK_") == 0) { vk = name; }
+var drawScreen = function(){
+  for(i = 0; i < screen_width;i++){
+    for(j = 0; j < screen_height;j++){
+      var color = (map[i+","+j] ? "#aa0": "#660");
+      display.draw(i, j, null,"#fff",color);
     }
-
-    if (vk == "VK_UP"){
-		character.moveup();
-	}
-	if (vk == "VK_DOWN"){
-		character.movedown();
-	}
-	if (vk == "VK_RIGHT"){
-		character.moveright();
-	}
-	if (vk == "VK_LEFT"){
-		character.moveleft();
-	}
-
-});
-
+  }
+}
 setInterval(function(){
 
   cont.actEntities();
   display.clear();
-	draw_screen();
+	drawScreen();
   cont.drawEntities();
 
 }, 100
